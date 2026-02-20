@@ -1,43 +1,64 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Phone, Mail, MapPin, Calendar, CheckSquare, Clock, Plus, Tag, ChevronLeft, Send, User } from 'lucide-react';
-import { format } from 'date-fns';
+import { useState, useEffect } from 'react';
+import {
+    ChevronLeft,
+    Phone,
+    Mail,
+    MapPin,
+    Calendar,
+    User,
+    Briefcase,
+    Clock,
+    CheckSquare,
+    Plus,
+    Send,
+    Edit,
+    Check
+} from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { mockDb } from '@/lib/mockDb';
 import Link from 'next/link';
+import { MOCK_LEADS, MOCK_ACTIVITIES, MOCK_TASKS } from '@/lib/mockData';
 
 export default function LeadDetails({ params }: { params: { org_slug: string, id: string } }) {
-    const [lead, setLead] = useState<any>(null);
-    const [activities, setActivities] = useState<any[]>([]);
-    const [tasks, setTasks] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    // For the mock version, we find the lead from MOCK_LEADS or use the first one as default
+    const lead = MOCK_LEADS.find(l => l.id === params.id) || MOCK_LEADS[0];
+    const [activities, setActivities] = useState(MOCK_ACTIVITIES);
+    const [tasks, setTasks] = useState(MOCK_TASKS);
     const [newActivity, setNewActivity] = useState('');
-
-    useEffect(() => {
-        const leadData = mockDb.getLeadById(params.id);
-        const actData = mockDb.getActivities(params.id);
-        const taskData = mockDb.getTasks(params.id);
-
-        setLead(leadData);
-        setActivities(actData || []);
-        setTasks(taskData || []);
-        setLoading(false);
-    }, [params.id]);
+    const [newTask, setNewTask] = useState('');
 
     const addActivity = () => {
         if (!newActivity.trim()) return;
-        const data = mockDb.addActivity({
+        const activity = {
+            id: Math.random().toString(),
             lead_id: params.id,
-            type: 'note',
-            description: newActivity
-        });
-
-        setActivities([data, ...activities]);
+            type: 'nota',
+            description: newActivity,
+            created_at: new Date().toISOString()
+        };
+        setActivities([activity, ...activities]);
         setNewActivity('');
     };
 
-    if (loading) return <div className="p-12 text-center text-slate-400 font-medium">Carregando Lead...</div>;
+    const addTask = () => {
+        if (!newTask.trim()) return;
+        const task = {
+            id: Math.random().toString(),
+            lead_id: params.id,
+            description: newTask,
+            completed: false,
+            created_at: new Date().toISOString()
+        };
+        setTasks([task, ...tasks]);
+        setNewTask('');
+    };
+
+    const toggleTask = (id: string) => {
+        setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    };
+
     if (!lead) return (
         <div className="p-12 text-center">
             <p className="text-red-500 font-bold text-xl mb-4">Lead não encontrado</p>
@@ -139,13 +160,58 @@ export default function LeadDetails({ params }: { params: { org_slug: string, id
                 </div>
 
                 {/* Right Column: Timeline & Tasks */}
-                <div className="lg:col-span-8 space-y-8">
-                    {/* History/Timeline Section */}
-                    <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-                        <h2 className="text-lg font-bold mb-8 flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-primary" />
-                            Histórico de Atividades
-                        </h2>
+                <div className="lg:col-span-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Tasks Card */}
+                    <div className="lg:col-span-1 bg-white p-8 rounded-[35px] premium-shadow border border-slate-50">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-black text-[#1B2559]">Tarefas</h2>
+                            <span className="bg-[#4318FF]/10 text-[#4318FF] px-3 py-1 rounded-full text-[10px] font-black">{tasks.filter(t => !t.completed).length} Pendentes</span>
+                        </div>
+
+                        <div className="space-y-4 mb-6 scrollbar-hide max-h-[400px] overflow-y-auto">
+                            {tasks.length === 0 ? (
+                                <p className="text-center text-slate-400 text-xs py-4">Nenhuma tarefa.</p>
+                            ) : (
+                                tasks.map((task) => (
+                                    <div key={task.id} className="flex items-center gap-4 group animate-in slide-in-from-right-2 fade-in duration-300">
+                                        <button
+                                            onClick={() => toggleTask(task.id, task.completed)}
+                                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-[#4318FF] border-[#4318FF]' : 'border-slate-200 hover:border-[#4318FF]'
+                                                }`}
+                                        >
+                                            {task.completed && <Check className="w-4 h-4 text-white" />}
+                                        </button>
+                                        <span className={`text-sm font-bold flex-1 transition-all ${task.completed ? 'text-[#A3AED0] line-through' : 'text-[#1B2559]'
+                                            }`}>
+                                            {task.description}
+                                        </span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="relative group">
+                            <input
+                                type="text"
+                                value={newTask}
+                                onChange={(e) => setNewTask(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && addTask()}
+                                placeholder="Nova tarefa..."
+                                className="w-full pl-4 pr-12 py-4 bg-[#F4F7FE] border-none rounded-2xl text-sm focus:ring-2 focus:ring-[#4318FF]/20 outline-none transition-all placeholder:text-[#A3AED0]"
+                            />
+                            <button
+                                onClick={addTask}
+                                disabled={!newTask.trim()}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#4318FF] text-white rounded-xl flex items-center justify-center hover:scale-105 transition-all shadow-lg shadow-[#4318FF]/20 disabled:opacity-50"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Timeline Section */}
+                    <div className="lg:col-span-2 bg-white p-8 rounded-[35px] premium-shadow border border-slate-50">
+                        <h2 className="text-xl font-black text-[#1B2559] mb-8">Histórico de Atividades</h2>
 
                         {/* Note Input */}
                         <div className="mb-10 bg-slate-50 p-6 rounded-2xl border border-slate-100 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/5 transition-all">
@@ -158,13 +224,13 @@ export default function LeadDetails({ params }: { params: { org_slug: string, id
                             />
                             <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-200/50">
                                 <div className="flex gap-2">
-                                    <button className="p-2 text-slate-400 hover:text-primary transition-colors hover:bg-white rounded-lg"><Tag className="w-4 h-4" /></button>
+                                    <button className="p-2 text-slate-400 hover:text-primary transition-colors hover:bg-white rounded-lg"><Clock className="w-4 h-4" /></button>
                                     <button className="p-2 text-slate-400 hover:text-primary transition-colors hover:bg-white rounded-lg"><Calendar className="w-4 h-4" /></button>
                                 </div>
                                 <button
                                     onClick={addActivity}
                                     disabled={!newActivity.trim()}
-                                    className="bg-primary text-white pl-5 pr-4 py-2 rounded-full text-sm font-bold hover:bg-primary/90 flex items-center gap-2 transition-all disabled:opacity-50"
+                                    className="bg-primary text-white pl-5 pr-4 py-2 rounded-full text-sm font-bold hover:bg-primary/90 flex items-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-primary/20"
                                 >
                                     Salvar Nota
                                     <Send className="w-4 h-4" />
@@ -172,50 +238,33 @@ export default function LeadDetails({ params }: { params: { org_slug: string, id
                             </div>
                         </div>
 
-                        {/* Timeline */}
-                        <div className="space-y-10 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+                        <div className="relative space-y-10 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 max-h-[600px] overflow-y-auto scrollbar-hide pr-2">
                             {activities.length === 0 ? (
                                 <div className="pl-12 text-center py-10">
-                                    <p className="text-slate-400 text-sm font-medium">Inicie o histórico de atividades deste lead...</p>
+                                    <p className="text-slate-400 text-sm font-medium italic">Inicie o histórico de atividades deste lead...</p>
                                 </div>
                             ) : (
                                 activities.map((activity, idx) => (
-                                    <div key={activity.id} className="relative pl-12">
-                                        <div className="absolute left-0 top-1 w-7 h-7 bg-white border-2 border-primary rounded-full ring-4 ring-white flex items-center justify-center">
-                                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                    <div key={activity.id || idx} className="relative flex gap-6 pl-12 group animate-in slide-in-from-bottom-2 fade-in duration-300">
+                                        <div className="absolute left-0 top-1 w-10 h-10 rounded-full bg-white border-2 border-slate-50 flex items-center justify-center z-10 shadow-sm group-hover:border-[#4318FF] transition-colors">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#4318FF]" />
                                         </div>
-                                        <div className="bg-white group">
-                                            <div className="flex justify-between items-center mb-3">
-                                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{activity.type}</span>
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase">
-                                                    <Clock className="w-3 h-3" />
-                                                    {format(new Date(activity.created_at), 'dd MMM, HH:mm', { locale: ptBR })}
-                                                </div>
+                                        <div className="flex-1 space-y-2">
+                                            <div className="flex justify-between items-start">
+                                                <p className="text-sm font-black text-[#1B2559] group-hover:text-[#4318FF] transition-colors">
+                                                    {activity.type === 'nota' ? 'Nota adicionada' : 'Atualização de status'}
+                                                </p>
+                                                <span className="text-[10px] font-black text-[#A3AED0] uppercase tracking-widest whitespace-nowrap">
+                                                    {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true, locale: ptBR })}
+                                                </span>
                                             </div>
-                                            <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 group-hover:border-primary/20 transition-colors">
-                                                <p className="text-sm font-medium text-slate-700 leading-relaxed">{activity.description}</p>
+                                            <div className="bg-[#F4F7FE]/50 p-4 rounded-2xl border border-transparent group-hover:border-slate-100 group-hover:bg-white transition-all">
+                                                <p className="text-sm text-[#1B2559] font-medium leading-relaxed">{activity.description}</p>
                                             </div>
                                         </div>
                                     </div>
                                 ))
                             )}
-                        </div>
-                    </div>
-
-                    {/* Tasks Section Placeholder */}
-                    <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-lg font-bold flex items-center gap-2">
-                                <CheckSquare className="w-5 h-5 text-emerald-500" />
-                                Próximas Tarefas
-                            </h2>
-                            <button className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-primary transition-colors">
-                                <Plus className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 border-dashed text-center">
-                            <p className="text-sm font-bold text-slate-400">Nenhuma tarefa agendada</p>
-                            <button className="text-primary text-xs font-bold mt-1 hover:underline">Agendar primeira tarefa</button>
                         </div>
                     </div>
                 </div>

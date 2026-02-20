@@ -1,4 +1,4 @@
-# Real CRM - Standalone Demo Version CRM
+# Real CRM - Standalone Demo Version
 
 Versão simplificada para deploy imediato sem dependências externas (Supabase ou Meta Graph).
 
@@ -30,4 +30,3 @@ A rota `/api/meta/webhook` está habilitada e responde à verificação do Faceb
 ## Limitações do Modo Standalone
 - **Persistência**: Os leads cadastrados ficam salvos apenas enquanto o servidor da Vercel estiver ativo. Ao entrar em standby (cold start), os dados voltam aos valores iniciais (Seed Data).
 - **Multi-tenant**: A URL `/o/[org_slug]` funciona, mas todas compartilham o mesmo banco de dados em memória nesta demo.
-

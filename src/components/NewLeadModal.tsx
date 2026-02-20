@@ -26,27 +26,12 @@ export default function NewLeadModal({ orgId, onClose, onSuccess }: NewLeadModal
         e.preventDefault();
         setLoading(true);
 
-        try {
-            const res = await fetch('/api/leads', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...formData,
-                    org_id: orgId,
-                    status: 'novo',
-                    origin: 'Manual'
-                }),
-            });
-
-            if (res.ok) {
-                onSuccess?.();
-                onClose();
-            }
-        } catch (error) {
-            console.error('Error creating lead:', error);
-        } finally {
+        // Mock submission
+        setTimeout(() => {
+            onSuccess?.();
+            onClose();
             setLoading(false);
-        }
+        }, 1000);
     };
 
     return (

@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Search, Filter, MoreHorizontal, Plus, User, MapPin, Calendar as CalendarIcon } from 'lucide-react';
+import { useState } from 'react';
+import {
+    Plus,
+    Search,
+    Filter,
+    MoreHorizontal,
+    User,
+    Calendar as CalendarIcon,
+    MapPin
+} from 'lucide-react';
 import NewLeadModal from '@/components/NewLeadModal';
+import { MOCK_LEADS } from '@/lib/mockData';
 
 interface Lead {
     id: string;
@@ -18,25 +27,8 @@ interface Lead {
 }
 
 export default function LeadsList({ params }: { params: { org_slug: string } }) {
-    const [leads, setLeads] = useState<Lead[]>([]);
-    const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const fetchLeads = () => {
-        fetch(`/api/leads?org_slug=${params.org_slug}`)
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) setLeads(data);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
-    };
-
-    useEffect(() => {
-        fetchLeads();
-    }, [params.org_slug]);
-
-    if (loading) return <div className="p-12 text-center text-slate-400 font-medium">Carregando Leads...</div>;
+    const leads = MOCK_LEADS;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -100,7 +92,11 @@ export default function LeadsList({ params }: { params: { org_slug: string } }) 
                                 </tr>
                             ) : (
                                 leads.map((lead) => (
-                                    <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                                    <tr
+                                        key={lead.id}
+                                        className="hover:bg-slate-50/50 transition-colors cursor-pointer group"
+                                        onClick={() => window.location.href = `/o/${params.org_slug}/leads/${lead.id}`}
+                                    >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
@@ -156,9 +152,9 @@ export default function LeadsList({ params }: { params: { org_slug: string } }) 
 
             {isModalOpen && (
                 <NewLeadModal
-                    orgId="test-org-id"
+                    orgId={params.org_slug}
                     onClose={() => setIsModalOpen(false)}
-                    onSuccess={fetchLeads}
+                    onSuccess={() => { }}
                 />
             )}
         </div>
